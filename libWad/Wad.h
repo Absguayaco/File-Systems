@@ -20,6 +20,7 @@ class Wad{
 
   public:
     static Wad* loadWad(const std::string &path);
+    std::string getMagic();
     bool isContent(const std::string &path);
     bool isDirectory(const std::string &path);
     int getSize(const std::string &path);
