@@ -5,45 +5,54 @@ void Wad::searchWad(Node* node, Node* newNode){
     fileStream.read(reinterpret_cast<char*>(&offset), sizeof(offset));
     unsigned int size;
     fileStream.read(reinterpret_cast<char*>(&size), sizeof(size));
-    char name[8];
+    char name[9];
+    name[8] = '\O'; //not sure if nccessart
     fileStream.read(name, 8);
     std::string strName(name);
     if(strName == node->getName() + "_END"){
       //Copy and shift remaining forward
       fileStream.seekg(descriptorOffset + (i-1) * 16);
-      char buffer[32];
-      fileStream.read(buffer, 32);
-      fileStream.seekp(descriptorOffset + (i) * 16);
-      fileStream.write(buffer, 32);
-      //Write new descriptors
-      fileStream.seekp(descriptorOffset + (i-1) * 16); // maybe chnage this and two above to i+1 if wrong
+      char buffer[(numDescriptors - i) * 16];
+      fileStream.read(buffer, sizeof(buffer)); 
+      fileStream.seekp(descriptorOffset + (i+2) * 16);
+      fileStream.write(buffer, sizeof(buffer)); 
+
+      fileStream.seekp(descriptorOffset + (i-1) * 16); //this line
+      unsigned int zero = 0;
+
       if(newNode->getType() == "namespace"){
-        char arr[8];
-        char arr2[8]; //not sure if this is neccessary
+        char arr[9];
         std::string tempString = newNode->getName() + "_START";
         std::string tempString2 = newNode->getName() + "_END";
-        fileStream.write(0, 4);
-        fileStream.write(0, 4);
-        fileStream.write(strcpy(arr, tempString.c_str()), 8);
+        fileStream.write(reinterpret_cast<const char*>(&zero), 4);
+        fileStream.write(reinterpret_cast<const char*>(&zero), 4);
+        fileStream.write(tempString.c_str(), 8);
 
-        fileStream.write(0, 4);
-        fileStream.write(0, 4);
-        fileStream.write(strcpy(arr2, tempString.c_str()), 8);
+        fileStream.write(reinterpret_cast<const char*>(&zero), 4);
+        fileStream.write(reinterpret_cast<const char*>(&zero), 4);
+        fileStream.write(tempString2.c_str(), 8);
         break;
       }
       else if(newNode->getType() == "file"){
         char arr[8];
-        fileStream.write(0, 4);
-        fileStream.write(0, 4);
-        fileStream.write(strcpy(arr, newNode->getName().c_str()), 8);
+        fileStream.write(reinterpret_cast<const char*>(&zero), 4);
+        fileStream.write(reinterpret_cast<const char*>(&zero), 4);
+        fileStream.write(newNode->getName().c_str(), 8);//maybe add strcpy for these
         break;
       }
     }
   }
 }
 
-void Wad::shiftWad(Node* node, Node* newNode){
-    
+void Wad::shiftWad(Node* node, Node* newNode, int length){
+    fileStream.seekg(descriptorOffset);
+
+    char buffer[numDescriptors * 16];
+    fileStream.read(buffer, sizeof(buffer));
+    fileStream.seekp(descriptorOffset + length);
+    fileStream.write(buffer, sizeof(buffer)); 
+
+
 }
 Wad::Wad(const std::string &path) : fileStream(path){
   Tree* tempTree = new Tree("/");
@@ -163,7 +172,7 @@ int Wad::getContents(const std::string &path, char *buffer, int length, int offs
     return -1;
   }
 
-  fileStream.seekg(node->getOffset() + offset);
+  fileStream.seekg(node->getOffset() + offset); //TODO: check that this works properly
   int bytesRead = fileStream.read(buffer, length).gcount();
   return bytesRead;
 }
@@ -248,7 +257,46 @@ int Wad::writeToFile(const std::string &path, const char *buffer, int length, in
   }
   //TODO: write a lot here
 
-  fileStream.seekp(node->getOffset() + offset);
-  fileStream.write(buffer, length);
-  return length;
+  fileStream.seekg(descriptorOffset);
+
+  //shifts descriptor list forward
+  char readBuffer[numDescriptors * 16];
+  fileStream.read(readBuffer, sizeof(buffer));
+  fileStream.seekp(descriptorOffset + length);
+  fileStream.write(readBuffer, sizeof(readBuffer)); 
+  
+  //write lump data
+  buffer += offset;
+  fileStream.seekp(descriptorOffset);
+  int beforeWrite = fileStream.tellp();
+  int bytesWritten = fileStream.write(buffer, length).tellp();bytesWritten -= beforeWrite; 
+
+  //Change Header
+  fileStream.seekp(8);  
+  int newOffset = fileStream.tellp();
+  fileStream.write(reinterpret_cast<char*>(&newOffset), sizeof(newOffset));
+
+  //Change descriptor
+  node->setOffset(descriptorOffset);
+  fileStream.seekp(newOffset);
+  for(int i = 0; i < numDescriptors; i++){
+    unsigned int desOffset;
+    fileStream.read(reinterpret_cast<char*>(&desOffset), sizeof(desOffset));
+    unsigned int size;
+    fileStream.read(reinterpret_cast<char*>(&size), sizeof(size));
+    char name[9];
+    name[8] = '\O'; //not sure if nccessart
+    fileStream.read(name, 8);
+    std::string strName(name);
+    if(strName == node->getName()){
+      fileStream.seekp(descriptorOffset + i * 16);
+      fileStream.write(reinterpret_cast<char*>(&descriptorOffset), sizeof(newOffset));
+      fileStream.write(reinterpret_cast<char*>(&length), sizeof(length));
+      break;
+    }
+  }
+
+  descriptorOffset = newOffset;
+
+  return bytesWritten;
 }

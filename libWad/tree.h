@@ -39,6 +39,9 @@ class Node{
     std::vector<Node*> getChildren(){
       return this->children;
   }
+  void setOffset(int offset){
+    this->offset = offset;
+  }
 };
 
 class Tree{
