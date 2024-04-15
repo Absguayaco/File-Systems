@@ -45,7 +45,7 @@ class Tree{
   public:
     Node* root;
     Tree(char data[]){
-      root = new Node(0, 0, data, "directory");
+      root = new Node(0, 0, data, "namespace");
     }
     void insert(Node* parent, Node* node){
       parent->children.push_back(node);
@@ -73,8 +73,16 @@ std::vector<std::string> intepretPath(std::string path){
   if(path[0] != '/'){
     return splitString;
   }
-  while ((pos = path.find(delimiter)) != std::string::npos) {
-    splitString.push_back(path.substr(0, pos));
-    path.erase(0, pos + delimiter.length());
+  size_t start = 1;
+  pos = path.find(delimiter), start;
+  while (pos != std::string::npos) {
+    if(pos > start)
+    splitString.push_back(path.substr(start, pos - start));
+    start = pos + 1;
+    pos  = path.find(delimiter, start);
   }
+  if(start < path.length()){
+    splitString.push_back(path.substr(start));
+  }
+  return splitString;
 }
