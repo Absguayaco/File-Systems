@@ -8,7 +8,6 @@
 #include <fstream>
 #include <regex>
 
-//TODO: magic as char array, number of descitpors as unsigned int, descripor offset also unsigned int.
 class Wad{
   private:
     std::fstream fileStream;

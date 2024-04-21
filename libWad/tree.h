@@ -66,54 +66,45 @@ class Tree{
     if(node == nullptr){
         return;
       }
-    std::cout << "Name: " << node->getName() << ", Type: " << node->getType() <<", Offset: " << node ->getOffset() << ", Length: " << node->getLength() << std::endl;
     for(Node* child: node ->getChildren()){
         printNodes(child);
       }
     }
+    
     void insert(Node* parent, Node* node){
-	if(parent == nullptr){
-		std::cout << "parent null" << std::endl;
-		return;
-	}
-	if(node == nullptr){
-		std::cout << "node null" << std::endl;
-		return;
-	}
-//      std::cout << "null checks passed" << std::endl;
-      if(root->getName() != "/"){
-        root->setName("/");
-      }
-
-        //parent->children = std::vector<Node*>();
-  //    std::cout << "check for children" << parent->children.empty() << std::endl;
-    //  std::cout << "root name check passed" << std::endl;
-      parent->children.push_back(node);
-      //std::cout << "child passed in" << std::endl;
-      node->parent = parent;
+	  if(parent == nullptr){
+		  return;
+	  }
+	  if(node == nullptr){
+		  return;
+	  }
+    if(root->getName() != "/"){
+      root->setName("/");
     }
+    parent->children.push_back(node);
+    node->parent = parent;
+    }
+
     Node* depthFirstSearch(Node* node, std::vector<std::string> path, size_t index = 0){
       if(node == nullptr || index >= path.size()){
         return nullptr;
       }
-      //std::cout << "Node name in DFS: " << node->name << std::endl;
-      //std::cout << "Node type: " << node->getType() << std::endl;
       if(path[path.size()-1] == node->name){
-	return node;
+	      return node;
       }
       if(node->name == path[index]){
         if(index == path.size()-1){
-	  return node;
-	}
-	if(!node->children.empty()){
+	        return node;
+	      }
+	      if(!node->children.empty()){
           for(Node* child : node->children){
             if(child->name == path[index +1]){
               Node* result = depthFirstSearch(child, path, index + 1);
               if(result != nullptr){
                 return result;
               }
-	    }
-	  }
+	         }
+	        }
         }
       }
       return nullptr;
